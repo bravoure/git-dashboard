@@ -15,4 +15,11 @@ pnpm-debug.log*
 .idea/
 .vscode/
 
+# environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 

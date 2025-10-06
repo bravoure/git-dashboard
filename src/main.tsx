@@ -1,13 +1,9 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import { Dashboard } from './components/Dashboard'
 
 function App() {
-  return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif', padding: 24 }}>
-      <h1>Hello World</h1>
-      <p>Your React app is up and running.</p>
-    </div>
-  )
+  return <Dashboard />
 }
 
 const container = document.getElementById('root')
