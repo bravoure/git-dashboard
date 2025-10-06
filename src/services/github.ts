@@ -125,7 +125,7 @@ export class GitHubService {
 
     while (true) {
       const response = await fetch(
-        `${this.baseUrl}/repos/${owner}/${repo}/pulls?state=open&per_page=${perPage}&page=${page}`,
+        `${this.baseUrl}/repos/${owner}/${repo}/pulls?state=all&per_page=${perPage}&page=${page}`,
         {
           headers: {
             Authorization: `token ${this.token}`,
@@ -225,6 +225,21 @@ export class GitHubService {
             prs.length
           } PRs`
         );
+
+        // Special debugging for amsterdam-museum repository
+        if (repo.name === "amsterdam-museum") {
+          console.log(
+            "🔍 Amsterdam Museum PRs:",
+            prs.map((pr) => ({
+              number: pr.number,
+              title: pr.title,
+              state: pr.state,
+              review_decision: pr.review_decision,
+              html_url: pr.html_url,
+            }))
+          );
+        }
+
         return prs;
       } catch (error) {
         console.warn(`Failed to fetch PRs for ${repo.name}:`, error);

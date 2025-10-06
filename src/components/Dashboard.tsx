@@ -14,6 +14,7 @@ export const Dashboard: React.FC = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+  const [showClosedPRs, setShowClosedPRs] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [isFromCache, setIsFromCache] = useState(false)
@@ -166,6 +167,11 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     let filtered = prs
 
+    // Filter by open/closed status first
+    if (!showClosedPRs) {
+      filtered = filtered.filter(pr => pr.state === 'open')
+    }
+
     if (selectedUsers.length > 0) {
       filtered = filtered.filter(pr =>
         selectedUsers.includes(pr.user?.login || '') ||
@@ -197,7 +203,7 @@ export const Dashboard: React.FC = () => {
 
     setFilteredPRs(filtered)
     setCurrentPage(1) // Reset to first page when filters change
-  }, [prs, selectedUsers, selectedProjects, selectedStatuses])
+  }, [prs, selectedUsers, selectedProjects, selectedStatuses, showClosedPRs])
 
   const users = Array.from(new Set([
     ...prs.map(pr => pr.user?.login).filter(Boolean),
@@ -206,6 +212,11 @@ export const Dashboard: React.FC = () => {
   ]))
 
   const projects = Array.from(new Set(prs.map(pr => pr.repository?.name).filter(Boolean)))
+
+  // Debug: Log PR counts
+  const openPRs = prs.filter(pr => pr.state === 'open').length
+  const closedPRs = prs.filter(pr => pr.state === 'closed').length
+  console.log(`📊 PR Statistics: ${openPRs} open, ${closedPRs} closed, ${prs.length} total`)
 
   // Calculate counts for each filter option
   const userCounts = users.reduce((acc, user) => {
@@ -330,25 +341,39 @@ export const Dashboard: React.FC = () => {
             </p>
           )}
         </div>
-        <button
-          onClick={() => fetchData(true)}
-          disabled={loading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          {loading ? '⏳' : '🔄'} {loading ? 'Loading...' : 'Force Refresh'}
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={showClosedPRs}
+              onChange={(e) => setShowClosedPRs(e.target.checked)}
+              style={{ margin: 0 }}
+            />
+            <span style={{ fontSize: '14px', color: '#374151' }}>
+              Show closed PRs
+            </span>
+          </label>
+
+          <button
+            onClick={() => fetchData(true)}
+            disabled={loading}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            {loading ? '⏳' : '🔄'} {loading ? 'Loading...' : 'Force Refresh'}
+          </button>
+        </div>
       </div>
 
       <StatsBar prs={filteredPRs} />
