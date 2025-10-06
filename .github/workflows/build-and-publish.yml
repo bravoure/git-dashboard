@@ -55,7 +55,7 @@ jobs:
           git add docs
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): build site and publish to docs"
-            git push origin/docs --force
+            git push origin docs --force
           else
             echo "No changes to commit."
           fi
