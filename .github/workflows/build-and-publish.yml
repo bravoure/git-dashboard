@@ -29,6 +29,12 @@ jobs:
           node-version: 20
           cache: "pnpm"
 
+      - name: Checkout docs branch
+        run: git checkout docs
+
+      - name: Reset to main branch
+        run: git reset --hard origin/main
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -55,7 +61,7 @@ jobs:
           git add docs
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): build site and publish to docs"
-            git push origin docs --force
+            git push --force
           else
             echo "No changes to commit."
           fi
