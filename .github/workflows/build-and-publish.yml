@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,7 +55,7 @@ jobs:
           git add docs
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): build site and publish to docs"
-            git push
+            git push origin/docs --force
           else
             echo "No changes to commit."
           fi
