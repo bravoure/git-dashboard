@@ -167,4 +167,4 @@ Error: Build failed
 
 ---
 
-**Built with ❤️ for the Bravoure team**
+**Built with ❤️ for the Bravoure's team**
