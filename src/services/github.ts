@@ -1,294 +1,205 @@
-import { PullRequest, Repository } from "../types";
+import { PullRequest } from "../types";
 
 export class GitHubService {
   private token: string;
-  private baseUrl = "https://api.github.com";
 
   constructor(token: string) {
     this.token = token;
   }
 
-  async fetchOrganizationRepos(org: string): Promise<Repository[]> {
-    const allRepos: Repository[] = [];
-    let page = 1;
-    const perPage = 100; // Maximum allowed by GitHub API
-
-    while (true) {
-      const url = `${this.baseUrl}/orgs/${org}/repos?per_page=${perPage}&page=${page}&sort=updated&type=all&visibility=all`;
-      console.log(`Fetching: ${url}`);
-      console.log(`Token length: ${this.token.length}`);
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `token ${this.token}`,
-          Accept: "application/vnd.github.v3+json",
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error(
-            `Access denied: ${response.statusText}. Please check your GitHub token permissions.`
-          );
-        }
-        throw new Error(`Failed to fetch repos: ${response.statusText}`);
-      }
-
-      const repos = await response.json();
-      console.log(`Page ${page}: fetched ${repos.length} repositories`);
-
-      // Log repository details for debugging
-      if (page === 1) {
-        console.log(
-          "First page repositories:",
-          repos.map((r: any) => ({
-            name: r.name,
-            private: r.private,
-            open_issues_count: r.open_issues_count,
-          }))
-        );
-      }
-
-      // If no more repos, break the loop
-      if (repos.length === 0) {
-        console.log(
-          `No more repositories on page ${page}, stopping pagination`
-        );
-        break;
-      }
-
-      allRepos.push(...repos);
-
-      // If we got fewer repos than requested, we've reached the end
-      if (repos.length < perPage) {
-        console.log(
-          `Got ${repos.length} repos (less than ${perPage}), reached end of pagination`
-        );
-        break;
-      }
-
-      page++;
-    }
-
-    console.log(`Fetched ${allRepos.length} repositories for ${org}`);
-    console.log(
-      "Repository names:",
-      allRepos.map((r) => r.name)
-    );
-    return allRepos;
-  }
-
-  async fetchUserRepos(): Promise<Repository[]> {
-    const allRepos: Repository[] = [];
-    let page = 1;
+  async fetchAllPullRequestsViaGraphQL(org: string): Promise<PullRequest[]> {
+    const allPRs: PullRequest[] = [];
+    let hasNextPage = true;
+    let endCursor: string | null = null;
     const perPage = 100;
 
-    while (true) {
-      const url = `${this.baseUrl}/user/repos?per_page=${perPage}&page=${page}&sort=updated&type=all&visibility=all`;
-      console.log(`Fetching user repos: ${url}`);
+    console.log(`🔍 Fetching all PRs via GraphQL for organization: ${org}`);
 
-      const response = await fetch(url, {
+    while (hasNextPage) {
+      // Build the search query string (can't use variables in GraphQL search strings)
+      const searchQuery = `is:pr user:${org} archived:false`;
+
+      const query = `
+        query($perPage: Int!, $cursor: String) {
+          search(
+            query: "${searchQuery}"
+            type: ISSUE
+            first: $perPage
+            after: $cursor
+          ) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              ... on PullRequest {
+                id
+                number
+                title
+                state
+                isDraft
+                createdAt
+                updatedAt
+                url
+                author {
+                  login
+                  avatarUrl
+                }
+                assignees(first: 10) {
+                  nodes {
+                    login
+                    avatarUrl
+                  }
+                }
+                reviewRequests(first: 10) {
+                  nodes {
+                    requestedReviewer {
+                      ... on User {
+                        login
+                        avatarUrl
+                      }
+                    }
+                  }
+                }
+                reviewDecision
+                repository {
+                  name
+                  nameWithOwner
+                }
+                headRef {
+                  repository {
+                    name
+                    nameWithOwner
+                    owner {
+                      login
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const variables: { perPage: number; cursor: string | null } = {
+        perPage,
+        cursor: endCursor,
+      };
+
+      const response: Response = await fetch("https://api.github.com/graphql", {
+        method: "POST",
         headers: {
-          Authorization: `token ${this.token}`,
-          Accept: "application/vnd.github.v3+json",
+          Authorization: `bearer ${this.token}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ query, variables }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch user repos: ${response.statusText}`);
+        throw new Error(`GraphQL request failed: ${response.statusText}`);
       }
 
-      const repos = await response.json();
-      console.log(`Page ${page}: fetched ${repos.length} user repositories`);
+      const data: any = await response.json();
 
-      if (repos.length === 0) {
-        break;
+      if (data.errors) {
+        throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
       }
 
-      allRepos.push(...repos);
+      const searchResults: any = data.data.search;
+      const nodes = searchResults.nodes || [];
 
-      if (repos.length < perPage) {
-        break;
-      }
-
-      page++;
-    }
-
-    console.log(`Fetched ${allRepos.length} user repositories`);
-    return allRepos;
-  }
-
-  async fetchPullRequests(owner: string, repo: string): Promise<PullRequest[]> {
-    const allPRs: PullRequest[] = [];
-    let page = 1;
-    const perPage = 100; // Maximum allowed by GitHub API
-
-    while (true) {
-      const response = await fetch(
-        `${this.baseUrl}/repos/${owner}/${repo}/pulls?state=all&per_page=${perPage}&page=${page}`,
-        {
-          headers: {
-            Authorization: `token ${this.token}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        }
+      console.log(
+        `Fetched ${nodes.length} PRs (cursor: ${endCursor || "start"})`
       );
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch PRs for ${repo}: ${response.statusText}`
-        );
+      // Debug: Log sample PR data from GraphQL
+      if (nodes.length > 0) {
+        console.log("🔍 GraphQL PR sample:", {
+          title: nodes[0].title,
+          isDraft: nodes[0].isDraft,
+          reviewDecision: nodes[0].reviewDecision,
+          state: nodes[0].state,
+        });
       }
 
-      const prs = await response.json();
+      // Transform GraphQL response to match our PullRequest type
+      const transformedPRs = nodes.map((pr: any) => ({
+        id: pr.number, // Use number as id for consistency
+        number: pr.number,
+        title: pr.title,
+        state: pr.state.toLowerCase(),
+        draft: pr.isDraft,
+        user: pr.author
+          ? {
+              login: pr.author.login,
+              avatar_url: pr.author.avatarUrl,
+            }
+          : null,
+        assignees: pr.assignees.nodes.map((a: any) => ({
+          login: a.login,
+          avatar_url: a.avatarUrl,
+        })),
+        requested_reviewers: pr.reviewRequests.nodes
+          .map((r: any) => r.requestedReviewer)
+          .filter((r: any) => r !== null)
+          .map((r: any) => ({
+            login: r.login,
+            avatar_url: r.avatarUrl,
+          })),
+        created_at: pr.createdAt,
+        updated_at: pr.updatedAt,
+        html_url: pr.url,
+        repository: {
+          name: pr.repository.name,
+          full_name: pr.repository.nameWithOwner,
+        },
+        review_decision: pr.reviewDecision,
+        head: pr.headRef?.repository
+          ? {
+              repo: {
+                name: pr.headRef.repository.name,
+                full_name: pr.headRef.repository.nameWithOwner,
+                owner: {
+                  login: pr.headRef.repository.owner.login,
+                },
+              },
+            }
+          : null,
+      }));
 
-      // If no more PRs, break the loop
-      if (prs.length === 0) {
+      allPRs.push(...transformedPRs);
+
+      hasNextPage = searchResults.pageInfo.hasNextPage;
+      endCursor = searchResults.pageInfo.endCursor;
+
+      if (!hasNextPage) {
         break;
       }
 
-      allPRs.push(...prs);
-
-      // If we got fewer PRs than requested, we've reached the end
-      if (prs.length < perPage) {
-        break;
-      }
-
-      page++;
+      // Small delay to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
+
+    console.log(`✅ Total PRs fetched via GraphQL: ${allPRs.length}`);
+
+    // Log PR distribution by repository
+    const prCountByRepo = allPRs.reduce((acc, pr) => {
+      const repoName = pr.repository?.name || "unknown";
+      acc[repoName] = (acc[repoName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    console.log(
+      "PRs by repository:",
+      Object.entries(prCountByRepo)
+        .map(([repo, count]) => ({ repo, prCount: count }))
+        .sort((a, b) => b.prCount - a.prCount)
+    );
 
     return allPRs;
   }
 
-  async fetchPullRequestReviewStatus(
-    owner: string,
-    repo: string,
-    prNumber: number
-  ): Promise<string | undefined> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/repos/${owner}/${repo}/pulls/${prNumber}`,
-        {
-          headers: {
-            Authorization: `token ${this.token}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        console.warn(
-          `Failed to fetch review status for ${owner}/${repo}#${prNumber}: ${response.statusText}`
-        );
-        return undefined;
-      }
-
-      const pr = await response.json();
-      return pr.review_decision;
-    } catch (error) {
-      console.warn(
-        `Error fetching review status for ${owner}/${repo}#${prNumber}:`,
-        error
-      );
-      return undefined;
-    }
-  }
-
   async fetchAllPullRequests(org: string): Promise<PullRequest[]> {
-    let repos: Repository[];
-
-    try {
-      repos = await this.fetchOrganizationRepos(org);
-      console.log(
-        `Fetched ${repos.length} repositories from organization ${org}`
-      );
-    } catch (error) {
-      console.warn(
-        `Failed to fetch organization repos for ${org}, trying user repos:`,
-        error
-      );
-      // Fallback: try to fetch user's repositories
-      repos = await this.fetchUserRepos();
-      console.log(`Fetched ${repos.length} repositories from user account`);
-    }
-
-    console.log(`Fetching PRs from ${repos.length} repositories...`);
-
-    // Fetch all pull requests in parallel
-    const prPromises = repos.map(async (repo, index) => {
-      try {
-        // Use the actual owner from the repo object, fallback to org
-        const owner = (repo as any).owner?.login || org;
-        const prs = await this.fetchPullRequests(owner, repo.name);
-        console.log(
-          `[${index + 1}/${repos.length}] ${owner}/${repo.name}: ${
-            prs.length
-          } PRs`
-        );
-
-        // Special debugging for amsterdam-museum repository
-        if (repo.name === "amsterdam-museum") {
-          console.log(
-            "🔍 Amsterdam Museum PRs:",
-            prs.map((pr) => ({
-              number: pr.number,
-              title: pr.title,
-              state: pr.state,
-              review_decision: pr.review_decision,
-              html_url: pr.html_url,
-            }))
-          );
-        }
-
-        return prs;
-      } catch (error) {
-        console.warn(`Failed to fetch PRs for ${repo.name}:`, error);
-        return []; // Return empty array on error
-      }
-    });
-
-    // Wait for all requests to complete
-    const prResults = await Promise.all(prPromises);
-
-    // Flatten the results into a single array
-    const allPRs = prResults.flat();
-    console.log(`Total PRs fetched: ${allPRs.length}`);
-
-    // Log PR distribution by repository
-    const prCountByRepo = prResults
-      .map((prs, index) => ({
-        repo: repos[index]?.name || "unknown",
-        prCount: prs.length,
-      }))
-      .filter((r) => r.prCount > 0);
-
-    console.log("PRs by repository:", prCountByRepo);
-
-    // Now fetch review status for each PR and attach repository information
-    console.log("Fetching review status for each PR...");
-    const prsWithReviewStatus = await Promise.all(
-      allPRs.map(async (pr) => {
-        const reviewDecision = await this.fetchPullRequestReviewStatus(
-          pr.head.repo.owner.login,
-          pr.head.repo.name,
-          pr.number
-        );
-        return {
-          ...pr,
-          review_decision: reviewDecision as
-            | "APPROVED"
-            | "CHANGES_REQUESTED"
-            | "REVIEW_REQUIRED"
-            | undefined,
-          repository: {
-            name: pr.head.repo.name,
-            full_name: pr.head.repo.full_name,
-          },
-        };
-      })
-    );
-
-    console.log("Review status fetching completed");
-    return prsWithReviewStatus;
+    return await this.fetchAllPullRequestsViaGraphQL(org);
   }
 }

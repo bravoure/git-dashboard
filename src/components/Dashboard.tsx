@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { PullRequest } from '../types'
 import { GitHubService } from '../services/github'
-import { githubCache } from '../services/cache'
 import { PRCard } from './PRCard'
 import { FilterBar } from './FilterBar'
 import { StatsBar } from './StatsBar'
@@ -18,7 +17,7 @@ export const Dashboard: React.FC = () => {
   const [lastFetchTime, setLastFetchTime] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [isFromCache, setIsFromCache] = useState(false)
-  const itemsPerPage = 100
+  const itemsPerPage = 25
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -70,24 +69,8 @@ export const Dashboard: React.FC = () => {
       setLoading(true)
       setError(null)
 
-      // Check cache first
-      if (!forceRefresh) {
-        const cachedData = githubCache.get<{ prs: PullRequest[] }>('github-prs-data')
-        if (cachedData) {
-          setPRs(cachedData.prs)
-          setFilteredPRs(cachedData.prs)
-          setLastFetchTime(new Date(githubCache.getAge('github-prs-data')).toLocaleString())
-          setLoading(false)
-
-          // Background refresh if cache is getting stale
-          if (githubCache.isStale('github-prs-data')) {
-            console.log('Cache is stale, refreshing in background...')
-            // Don't await this - let it run in background
-            fetchData(true).catch(console.error)
-          }
-          return
-        }
-      }
+      // Check cache first (already handled in useEffect on mount)
+      // This only runs on force refresh
 
       const token = (import.meta as any).env.VITE_GITHUB_TOKEN
       if (!token) {
@@ -130,7 +113,7 @@ export const Dashboard: React.FC = () => {
       localStorage.setItem('github-prs-timestamp', timestamp.toString())
 
       setPRs(allPRs)
-      setFilteredPRs(allPRs)
+      // Don't set filteredPRs here - let the useEffect handle filtering
       setLastFetchTime(new Date(timestamp).toLocaleString())
       setIsFromCache(false)
     } catch (err) {
@@ -153,7 +136,7 @@ export const Dashboard: React.FC = () => {
       try {
         const parsedData = JSON.parse(cachedData)
         setPRs(parsedData.prs)
-        setFilteredPRs(parsedData.prs)
+        // Don't set filteredPRs here - let the useEffect handle filtering
         setLastFetchTime(new Date(parseInt(cachedTime)).toLocaleString())
         setIsFromCache(true)
         setLoading(false)
@@ -201,54 +184,118 @@ export const Dashboard: React.FC = () => {
       })
     }
 
+    console.log('🔍 Filtering PRs:', {
+      totalPRs: prs.length,
+      afterOpenClosedFilter: filtered.length,
+      selectedUsers: selectedUsers.length,
+      selectedProjects: selectedProjects.length,
+      selectedStatuses: selectedStatuses.length,
+      showClosedPRs,
+      finalFiltered: filtered.length
+    })
+
+    // Debug: Log sample PR data to check review_decision values
+    if (prs.length > 0) {
+      const firstPR = prs[0]
+      console.log('🔍 Sample PR data:', {
+        firstPR: {
+          title: firstPR?.title,
+          draft: firstPR?.draft,
+          review_decision: firstPR?.review_decision,
+          state: firstPR?.state
+        },
+        selectedStatuses,
+        statusCounts
+      })
+    }
+
+    // Debug: Log some filtered PRs to see what's actually being filtered
+    if (filtered.length > 0) {
+      console.log('🔍 Filtered PRs sample:', filtered.slice(0, 3).map(pr => ({
+        title: pr.title,
+        draft: pr.draft,
+        review_decision: pr.review_decision,
+        state: pr.state
+      })))
+    }
+
     setFilteredPRs(filtered)
     setCurrentPage(1) // Reset to first page when filters change
   }, [prs, selectedUsers, selectedProjects, selectedStatuses, showClosedPRs])
 
-  const users = Array.from(new Set([
+  // Get all possible users and projects from all PRs (for filter options)
+  const allUsers = Array.from(new Set([
     ...prs.map(pr => pr.user?.login).filter(Boolean),
     ...prs.flatMap(pr => pr.assignees?.map(a => a.login) || []),
     ...prs.flatMap(pr => pr.requested_reviewers?.map(r => r.login) || [])
   ]))
 
-  const projects = Array.from(new Set(prs.map(pr => pr.repository?.name).filter(Boolean)))
+  const allProjects = Array.from(new Set(prs.map(pr => pr.repository?.name).filter(Boolean)))
 
   // Debug: Log PR counts
   const openPRs = prs.filter(pr => pr.state === 'open').length
   const closedPRs = prs.filter(pr => pr.state === 'closed').length
   console.log(`📊 PR Statistics: ${openPRs} open, ${closedPRs} closed, ${prs.length} total`)
 
-  // Calculate counts for each filter option
-  const userCounts = users.reduce((acc, user) => {
-    acc[user] = prs.filter(pr =>
-      pr.user?.login === user ||
-      pr.assignees?.some(a => a.login === user) ||
-      pr.requested_reviewers?.some(r => r.login === user)
-    ).length
-    return acc
-  }, {} as Record<string, number>)
+  // State for dynamic counts that update when filteredPRs changes
+  const [userCounts, setUserCounts] = useState<Record<string, number>>({})
+  const [projectCounts, setProjectCounts] = useState<Record<string, number>>({})
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
 
-  const projectCounts = projects.reduce((acc, project) => {
-    acc[project] = prs.filter(pr => pr.repository?.name === project).length
-    return acc
-  }, {} as Record<string, number>)
+  // Update counts when filteredPRs changes
+  useEffect(() => {
+    const newUserCounts = allUsers.reduce((acc, user) => {
+      acc[user] = filteredPRs.filter(pr =>
+        pr.user?.login === user ||
+        pr.assignees?.some(a => a.login === user) ||
+        pr.requested_reviewers?.some(r => r.login === user)
+      ).length
+      return acc
+    }, {} as Record<string, number>)
 
-  const statusCounts = {
-    draft: prs.filter(pr => pr.draft).length,
-    ready: prs.filter(pr => !pr.draft && pr.review_decision !== 'APPROVED' && pr.review_decision !== 'CHANGES_REQUESTED').length,
-    approved: prs.filter(pr => pr.review_decision === 'APPROVED').length,
-    changes: prs.filter(pr => pr.review_decision === 'CHANGES_REQUESTED').length
-  }
+    const newProjectCounts = allProjects.reduce((acc, project) => {
+      acc[project] = filteredPRs.filter(pr => pr.repository?.name === project).length
+      return acc
+    }, {} as Record<string, number>)
+
+    const newStatusCounts = {
+      draft: filteredPRs.filter(pr => pr.draft).length,
+      ready: filteredPRs.filter(pr => !pr.draft && pr.review_decision !== 'APPROVED' && pr.review_decision !== 'CHANGES_REQUESTED').length,
+      approved: filteredPRs.filter(pr => pr.review_decision === 'APPROVED').length,
+      changes: filteredPRs.filter(pr => pr.review_decision === 'CHANGES_REQUESTED').length
+    }
+
+    setUserCounts(newUserCounts)
+    setProjectCounts(newProjectCounts)
+    setStatusCounts(newStatusCounts)
+
+    console.log('🔍 Counts updated:', {
+      filteredPRsLength: filteredPRs.length,
+      userCounts: Object.keys(newUserCounts).length,
+      projectCounts: Object.keys(newProjectCounts).length,
+      statusCounts: newStatusCounts
+    })
+  }, [filteredPRs, allUsers, allProjects])
 
   // Sort users and projects by count descending
-  const sortedUsers = users.sort((a, b) => (userCounts[b] || 0) - (userCounts[a] || 0))
-  const sortedProjects = projects.sort((a, b) => (projectCounts[b] || 0) - (projectCounts[a] || 0))
+  const sortedUsers = allUsers.sort((a, b) => (userCounts[b] || 0) - (userCounts[a] || 0))
+  const sortedProjects = allProjects.sort((a, b) => (projectCounts[b] || 0) - (projectCounts[a] || 0))
 
   // Pagination logic
   const totalPages = Math.ceil(filteredPRs.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentPagePRs = filteredPRs.slice(startIndex, endIndex)
+
+  // Debug: Log what's being displayed
+  console.log('🔍 Display Debug:', {
+    filteredPRsLength: filteredPRs.length,
+    currentPagePRsLength: currentPagePRs.length,
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex
+  })
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)))

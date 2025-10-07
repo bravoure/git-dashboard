@@ -145,13 +145,11 @@ Error: Build failed
 
 ## 📚 API Documentation
 
-**GitHub API Endpoints:**
+**GitHub API:**
 
-- `GET /orgs/{org}/repos` - Organization repositories
-- `GET /repos/{owner}/{repo}/pulls` - Repository pull requests
-- `GET /repos/{owner}/{repo}/pulls/{pull_number}` - PR review status
+- **GraphQL API** - Single query fetches all PRs with complete data (no N+1 problem)
 
-**Rate Limits:** 5,000 requests/hour (with intelligent 30-minute caching)
+**Rate Limits:** 5,000 requests/hour (GraphQL API + 30-minute caching = minimal API usage)
 
 ## 🤝 Contributing
 
