@@ -12,30 +12,22 @@ export const StatsBar: React.FC<StatsBarProps> = ({ prs }) => {
   const changesCount = prs.filter(pr => pr.review_decision === 'CHANGES_REQUESTED').length
 
   return (
-    <div style={{
-      display: 'flex',
-      gap: '24px',
-      marginBottom: '24px',
-      padding: '16px',
-      backgroundColor: '#f9fafb',
-      borderRadius: '8px',
-      border: '1px solid #e5e7eb'
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6b7280' }}>{draftCount}</div>
-        <div style={{ fontSize: '14px', color: '#6b7280' }}>Draft</div>
+    <div className="flex gap-6 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="text-center">
+        <div className="text-2xl font-bold text-gray-500">{draftCount}</div>
+        <div className="text-sm text-gray-500">Draft</div>
       </div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>{readyCount}</div>
-        <div style={{ fontSize: '14px', color: '#6b7280' }}>Ready for Review</div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-blue-500">{readyCount}</div>
+        <div className="text-sm text-gray-500">Ready for Review</div>
       </div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>{approvedCount}</div>
-        <div style={{ fontSize: '14px', color: '#6b7280' }}>Approved</div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-emerald-500">{approvedCount}</div>
+        <div className="text-sm text-gray-500">Approved</div>
       </div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f59e0b' }}>{changesCount}</div>
-        <div style={{ fontSize: '14px', color: '#6b7280' }}>Changes Requested</div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-amber-500">{changesCount}</div>
+        <div className="text-sm text-gray-500">Changes Requested</div>
       </div>
     </div>
   )

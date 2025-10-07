@@ -58,38 +58,21 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      gap: '16px',
-      marginBottom: '24px',
-      flexWrap: 'wrap',
-      alignItems: 'flex-start'
-    }}>
+    <div className="flex gap-4 mb-6 flex-wrap items-start">
       <div>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '4px', color: '#374151' }}>
+        <label className="block text-sm font-medium mb-1 text-gray-700">
           Filter by User:
         </label>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          maxHeight: '200px',
-          overflowY: 'auto',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
-          padding: '8px',
-          backgroundColor: 'white',
-          minWidth: '200px'
-        }}>
+        <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto border border-gray-300 rounded-md p-2 bg-white min-w-[200px]">
           {users.map(user => (
-            <label key={user} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <label key={user} className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedUsers.includes(user)}
                 onChange={() => handleUserChange(user)}
-                style={{ margin: 0 }}
+                className="m-0"
               />
-              <span style={{ fontSize: '14px' }}>
+              <span className="text-sm">
                 {user} ({userCounts[user] || 0})
               </span>
             </label>
@@ -98,30 +81,19 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       </div>
 
       <div>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '4px', color: '#374151' }}>
+        <label className="block text-sm font-medium mb-1 text-gray-700">
           Filter by Project:
         </label>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          maxHeight: '200px',
-          overflowY: 'auto',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
-          padding: '8px',
-          backgroundColor: 'white',
-          minWidth: '200px'
-        }}>
+        <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto border border-gray-300 rounded-md p-2 bg-white min-w-[200px]">
           {projects.map(project => (
-            <label key={project} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <label key={project} className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedProjects.includes(project)}
                 onChange={() => handleProjectChange(project)}
-                style={{ margin: 0 }}
+                className="m-0"
               />
-              <span style={{ fontSize: '14px' }}>
+              <span className="text-sm">
                 {project} ({projectCounts[project] || 0})
               </span>
             </label>
@@ -130,33 +102,24 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       </div>
 
       <div>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '4px', color: '#374151' }}>
+        <label className="block text-sm font-medium mb-1 text-gray-700">
           Filter by Status:
         </label>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
-          padding: '8px',
-          backgroundColor: 'white',
-          minWidth: '200px'
-        }}>
+        <div className="flex flex-col gap-1 border border-gray-300 rounded-md p-2 bg-white min-w-[200px]">
           {[
             { value: 'draft', label: 'Draft' },
             { value: 'ready', label: 'Ready for Review' },
             { value: 'approved', label: 'Approved' },
             { value: 'changes', label: 'Changes Requested' }
           ].map(status => (
-            <label key={status.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <label key={status.value} className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedStatuses.includes(status.value)}
                 onChange={() => handleStatusChange(status.value)}
-                style={{ margin: 0 }}
+                className="m-0"
               />
-              <span style={{ fontSize: '14px' }}>
+              <span className="text-sm">
                 {status.label} ({statusCounts[status.value] || 0})
               </span>
             </label>
@@ -164,18 +127,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+      <div className="flex items-end">
         <button
           onClick={clearAllFilters}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#6b7280',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}
+          className="px-4 py-2 bg-gray-500 text-white border-none rounded-md text-sm cursor-pointer hover:bg-gray-600"
         >
           Clear All Filters
         </button>

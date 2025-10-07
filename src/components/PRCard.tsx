@@ -7,10 +7,10 @@ interface PRCardProps {
 
 export const PRCard: React.FC<PRCardProps> = ({ pr }) => {
   const getStatusColor = (pr: PullRequest) => {
-    if (pr.draft) return '#6b7280' // gray
-    if (pr.review_decision === 'APPROVED') return '#10b981' // green
-    if (pr.review_decision === 'CHANGES_REQUESTED') return '#f59e0b' // yellow
-    return '#3b82f6' // blue
+    if (pr.draft) return 'bg-gray-500'
+    if (pr.review_decision === 'APPROVED') return 'bg-emerald-500'
+    if (pr.review_decision === 'CHANGES_REQUESTED') return 'bg-amber-500'
+    return 'bg-blue-500'
   }
 
   const getStatusText = (pr: PullRequest) => {
@@ -21,70 +21,56 @@ export const PRCard: React.FC<PRCardProps> = ({ pr }) => {
   }
 
   return (
-    <div style={{
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      padding: '16px',
-      marginBottom: '12px',
-      backgroundColor: 'white',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
-          <a href={pr.html_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+    <div className="border border-gray-200 rounded-lg p-4 mb-3 bg-white shadow-sm">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="m-0 text-base font-semibold text-gray-800">
+          <a href={pr.html_url} target="_blank" rel="noopener noreferrer" className="no-underline text-inherit hover:text-blue-600">
             {pr.title}
           </a>
         </h3>
-        <span style={{
-          backgroundColor: getStatusColor(pr),
-          color: 'white',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontWeight: '500'
-        }}>
+        <span className={`${getStatusColor(pr)} text-white px-2 py-1 rounded text-xs font-medium`}>
           {getStatusText(pr)}
         </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+      <div className="flex items-center gap-2 mb-2">
         <img
           src={pr.user?.avatar_url || ''}
           alt={pr.user?.login || 'Unknown'}
-          style={{ width: '20px', height: '20px', borderRadius: '50%' }}
+          className="w-5 h-5 rounded-full"
         />
-        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+        <span className="text-sm text-gray-500">
           {pr.user?.login || 'Unknown'} • {pr.repository?.name || 'Unknown'}
         </span>
       </div>
 
       {pr.assignees && pr.assignees.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>Assigned to:</span>
+        <div className="flex items-center gap-1 mb-1">
+          <span className="text-xs text-gray-500">Assigned to:</span>
           {pr.assignees.map((assignee, index) => (
-            <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div key={index} className="flex items-center gap-1">
               <img
                 src={assignee?.avatar_url || ''}
                 alt={assignee?.login || 'Unknown'}
-                style={{ width: '16px', height: '16px', borderRadius: '50%' }}
+                className="w-4 h-4 rounded-full"
               />
-              <span style={{ fontSize: '12px', color: '#374151' }}>{assignee?.login || 'Unknown'}</span>
+              <span className="text-xs text-gray-700">{assignee?.login || 'Unknown'}</span>
             </div>
           ))}
         </div>
       )}
 
       {pr.requested_reviewers && pr.requested_reviewers.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>Reviewers:</span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">Reviewers:</span>
           {pr.requested_reviewers.map((reviewer, index) => (
-            <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div key={index} className="flex items-center gap-1">
               <img
                 src={reviewer?.avatar_url || ''}
                 alt={reviewer?.login || 'Unknown'}
-                style={{ width: '16px', height: '16px', borderRadius: '50%' }}
+                className="w-4 h-4 rounded-full"
               />
-              <span style={{ fontSize: '12px', color: '#374151' }}>{reviewer?.login || 'Unknown'}</span>
+              <span className="text-xs text-gray-700">{reviewer?.login || 'Unknown'}</span>
             </div>
           ))}
         </div>

@@ -7,7 +7,7 @@ export interface PullRequest {
   user: {
     login: string;
     avatar_url: string;
-  };
+  } | null;
   assignees: Array<{
     login: string;
     avatar_url: string;
@@ -32,7 +32,7 @@ export interface PullRequest {
         login: string;
       };
     };
-  };
+  } | null;
 }
 
 export interface Repository {

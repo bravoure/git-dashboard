@@ -315,13 +315,7 @@ export const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
-      }}>
+      <div className="flex justify-center items-center h-screen font-sans">
         <div>Loading GitHub data...</div>
       </div>
     )
@@ -329,15 +323,9 @@ export const Dashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ color: '#dc2626' }}>Error</h2>
+      <div className="flex justify-center items-center h-screen font-sans">
+        <div className="text-center">
+          <h2 className="text-red-600">Error</h2>
           <p>{error}</p>
         </div>
       </div>
@@ -345,58 +333,35 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div style={{
-      fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
-      padding: '24px',
-      maxWidth: '1200px',
-      margin: '0 auto',
-      backgroundColor: '#f8fafc',
-      minHeight: '100vh'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+    <div className="font-sans p-6 max-w-6xl mx-auto bg-slate-50 min-h-screen">
+      <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 style={{
-            fontSize: '32px',
-            fontWeight: 'bold',
-            marginBottom: '8px',
-            color: '#1f2937'
-          }}>
+          <h1 className="text-3xl font-bold mb-2 text-gray-800">
             Bravoure Pull Request Dashboard
           </h1>
-          <p style={{
-            fontSize: '16px',
-            color: '#6b7280',
-            marginBottom: '8px'
-          }}>
+          <p className="text-base text-gray-500 mb-2">
             Overview of all open pull requests across Bravoure repositories
           </p>
           {lastFetchTime && (
-            <p style={{
-              fontSize: '14px',
-              color: '#9ca3af'
-            }}>
+            <p className="text-sm text-gray-400">
               Last updated: {lastFetchTime}
               {isFromCache && (
-                <span style={{
-                  color: '#10b981',
-                  fontWeight: '500',
-                  marginLeft: '8px'
-                }}>
+                <span className="text-emerald-500 font-medium ml-2">
                   📦 (from cache)
                 </span>
               )}
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <div className="flex gap-3 items-center">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={showClosedPRs}
               onChange={(e) => setShowClosedPRs(e.target.checked)}
-              style={{ margin: 0 }}
+              className="m-0"
             />
-            <span style={{ fontSize: '14px', color: '#374151' }}>
+            <span className="text-sm text-gray-700">
               Show closed PRs
             </span>
           </label>
@@ -404,19 +369,7 @@ export const Dashboard: React.FC = () => {
           <button
             onClick={() => fetchData(true)}
             disabled={loading}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
+            className={`px-6 py-3 ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 cursor-pointer'} text-white border-none rounded-lg text-sm font-medium flex items-center gap-2`}
           >
             {loading ? '⏳' : '🔄'} {loading ? 'Loading...' : 'Force Refresh'}
           </button>
@@ -440,40 +393,20 @@ export const Dashboard: React.FC = () => {
       />
 
       <div>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px'
-        }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-700 m-0">
             Pull Requests ({filteredPRs.length})
           </h2>
 
           {filteredPRs.length > 0 && (
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280'
-            }}>
+            <div className="text-sm text-gray-500">
               Showing {startIndex + 1}-{Math.min(endIndex, filteredPRs.length)} of {filteredPRs.length} results
             </div>
           )}
         </div>
 
         {filteredPRs.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '48px',
-            color: '#6b7280',
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-gray-200">
             No pull requests match the current filters
           </div>
         ) : (
@@ -483,42 +416,16 @@ export const Dashboard: React.FC = () => {
             ))}
 
             {totalPages > 1 && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px',
-                marginTop: '32px',
-                padding: '16px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
+              <div className="flex justify-center items-center gap-2 mt-8 p-4 bg-white rounded-lg border border-gray-200">
                 <button
                   onClick={goToPreviousPage}
                   disabled={currentPage === 1}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: currentPage === 1 ? '#f3f4f6' : '#3b82f6',
-                    color: currentPage === 1 ? '#9ca3af' : 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
+                  className={`px-4 py-2 ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white cursor-pointer'} border-none rounded-md text-sm font-medium flex items-center gap-1`}
                 >
                   ← Previous
                 </button>
 
-                <div style={{
-                  display: 'flex',
-                  gap: '4px',
-                  alignItems: 'center'
-                }}>
+                <div className="flex gap-1 items-center">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum;
                     if (totalPages <= 5) {
@@ -535,17 +442,7 @@ export const Dashboard: React.FC = () => {
                       <button
                         key={pageNum}
                         onClick={() => goToPage(pageNum)}
-                        style={{
-                          padding: '8px 12px',
-                          backgroundColor: currentPage === pageNum ? '#3b82f6' : '#f3f4f6',
-                          color: currentPage === pageNum ? 'white' : '#374151',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          minWidth: '40px'
-                        }}
+                        className={`px-3 py-2 ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'} border-none rounded-md text-sm font-medium cursor-pointer min-w-[40px]`}
                       >
                         {pageNum}
                       </button>
@@ -554,20 +451,10 @@ export const Dashboard: React.FC = () => {
 
                   {totalPages > 5 && currentPage < totalPages - 2 && (
                     <>
-                      <span style={{ color: '#9ca3af' }}>...</span>
+                      <span className="text-gray-400">...</span>
                       <button
                         onClick={() => goToPage(totalPages)}
-                        style={{
-                          padding: '8px 12px',
-                          backgroundColor: '#f3f4f6',
-                          color: '#374151',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          minWidth: '40px'
-                        }}
+                        className="px-3 py-2 bg-gray-100 text-gray-700 border-none rounded-md text-sm font-medium cursor-pointer min-w-[40px]"
                       >
                         {totalPages}
                       </button>
@@ -578,19 +465,7 @@ export const Dashboard: React.FC = () => {
                 <button
                   onClick={goToNextPage}
                   disabled={currentPage === totalPages}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: currentPage === totalPages ? '#f3f4f6' : '#3b82f6',
-                    color: currentPage === totalPages ? '#9ca3af' : 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
+                  className={`px-4 py-2 ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white cursor-pointer'} border-none rounded-md text-sm font-medium flex items-center gap-1`}
                 >
                   Next →
                 </button>
