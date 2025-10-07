@@ -14,6 +14,7 @@ export const Dashboard: React.FC = () => {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
   const [showClosedPRs, setShowClosedPRs] = useState(false)
+  const [hideBots, setHideBots] = useState(true)
   const [lastFetchTime, setLastFetchTime] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [isFromCache, setIsFromCache] = useState(false)
@@ -147,6 +148,7 @@ export const Dashboard: React.FC = () => {
     }
   }, [])
 
+
   useEffect(() => {
     let filtered = prs
 
@@ -155,12 +157,21 @@ export const Dashboard: React.FC = () => {
       filtered = filtered.filter(pr => pr.state === 'open')
     }
 
+
     if (selectedUsers.length > 0) {
-      filtered = filtered.filter(pr =>
-        selectedUsers.includes(pr.user?.login || '') ||
-        pr.assignees?.some(a => selectedUsers.includes(a.login)) ||
-        pr.requested_reviewers?.some(r => selectedUsers.includes(r.login))
-      )
+      filtered = filtered.filter(pr => {
+        // Filter by creator OR assignees
+        const creatorLogin = pr.user?.login || ''
+        const assigneeLogins = pr.assignees?.map(a => a.login || '') || []
+
+        // Check if creator is in selected users
+        const creatorSelected = selectedUsers.includes(creatorLogin)
+
+        // Check if any assignee is in selected users
+        const hasSelectedAssignee = assigneeLogins.some(login => selectedUsers.includes(login))
+
+        return creatorSelected || hasSelectedAssignee
+      })
     }
 
     if (selectedProjects.length > 0) {
@@ -221,16 +232,40 @@ export const Dashboard: React.FC = () => {
 
     setFilteredPRs(filtered)
     setCurrentPage(1) // Reset to first page when filters change
-  }, [prs, selectedUsers, selectedProjects, selectedStatuses, showClosedPRs])
+  }, [prs, selectedUsers, selectedProjects, selectedStatuses, showClosedPRs, hideBots])
 
   // Get all possible users and projects from all PRs (for filter options)
   const allUsers = Array.from(new Set([
     ...prs.map(pr => pr.user?.login).filter(Boolean),
-    ...prs.flatMap(pr => pr.assignees?.map(a => a.login) || []),
-    ...prs.flatMap(pr => pr.requested_reviewers?.map(r => r.login) || [])
+    ...prs.flatMap(pr => pr.assignees?.map(a => a.login) || [])
   ]))
 
   const allProjects = Array.from(new Set(prs.map(pr => pr.repository?.name).filter(Boolean)))
+
+  // Track if we should apply bot filtering (only when checkbox is toggled)
+  const [shouldApplyBotFilter, setShouldApplyBotFilter] = useState(false)
+
+  // When hideBots is toggled, mark that we should apply bot filtering
+  useEffect(() => {
+    setShouldApplyBotFilter(true)
+  }, [hideBots])
+
+  // Apply bot filtering when needed
+  useEffect(() => {
+    if (shouldApplyBotFilter && allUsers.length > 0) {
+      if (hideBots) {
+        const nonBotUsers = allUsers.filter(user => {
+          const userLogin = user.toLowerCase()
+          return userLogin !== 'github-actions' && !userLogin.includes('dependabot')
+        })
+        setSelectedUsers(nonBotUsers)
+      } else {
+        // When hideBots is disabled, clear user selection to show all
+        setSelectedUsers([])
+      }
+      setShouldApplyBotFilter(false)
+    }
+  }, [shouldApplyBotFilter, allUsers, hideBots])
 
   // Debug: Log PR counts
   const openPRs = prs.filter(pr => pr.state === 'open').length
@@ -245,11 +280,14 @@ export const Dashboard: React.FC = () => {
   // Update counts when filteredPRs changes
   useEffect(() => {
     const newUserCounts = allUsers.reduce((acc, user) => {
-      acc[user] = filteredPRs.filter(pr =>
-        pr.user?.login === user ||
-        pr.assignees?.some(a => a.login === user) ||
-        pr.requested_reviewers?.some(r => r.login === user)
-      ).length
+      if (!user) return acc
+      acc[user] = filteredPRs.filter(pr => {
+        // Count by creator OR assignees (same logic as filtering)
+        const creatorLogin = pr.user?.login || ''
+        const assigneeLogins = pr.assignees?.map(a => a.login || '') || []
+
+        return creatorLogin === user || assigneeLogins.includes(user)
+      }).length
       return acc
     }, {} as Record<string, number>)
 
@@ -278,8 +316,11 @@ export const Dashboard: React.FC = () => {
   }, [filteredPRs, allUsers, allProjects])
 
   // Sort users and projects by count descending
-  const sortedUsers = allUsers.sort((a, b) => (userCounts[b] || 0) - (userCounts[a] || 0))
-  const sortedProjects = allProjects.sort((a, b) => (projectCounts[b] || 0) - (projectCounts[a] || 0))
+  const sortedUsers = allUsers.filter(Boolean) as string[]
+  const sortedProjects = allProjects.filter(Boolean) as string[]
+
+  sortedUsers.sort((a, b) => (userCounts[b] || 0) - (userCounts[a] || 0))
+  sortedProjects.sort((a, b) => (projectCounts[b] || 0) - (projectCounts[a] || 0))
 
   // Pagination logic
   const totalPages = Math.ceil(filteredPRs.length / itemsPerPage)
@@ -310,6 +351,32 @@ export const Dashboard: React.FC = () => {
   const goToPreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1)
+    }
+  }
+
+  // Toggle all functions for filters
+  const toggleAllUsers = () => {
+    if (selectedUsers.length === sortedUsers.length) {
+      setSelectedUsers([])
+    } else {
+      setSelectedUsers([...sortedUsers])
+    }
+  }
+
+  const toggleAllProjects = () => {
+    if (selectedProjects.length === sortedProjects.length) {
+      setSelectedProjects([])
+    } else {
+      setSelectedProjects([...sortedProjects])
+    }
+  }
+
+  const toggleAllStatuses = () => {
+    const allStatuses = ['draft', 'ready', 'approved', 'changes']
+    if (selectedStatuses.length === allStatuses.length) {
+      setSelectedStatuses([])
+    } else {
+      setSelectedStatuses([...allStatuses])
     }
   }
 
@@ -378,19 +445,36 @@ export const Dashboard: React.FC = () => {
 
       <StatsBar prs={filteredPRs} />
 
-      <FilterBar
-        users={sortedUsers}
-        projects={sortedProjects}
-        onUserFilter={setSelectedUsers}
-        onProjectFilter={setSelectedProjects}
-        onStatusFilter={setSelectedStatuses}
-        selectedUsers={selectedUsers}
-        selectedProjects={selectedProjects}
-        selectedStatuses={selectedStatuses}
-        userCounts={userCounts}
-        projectCounts={projectCounts}
-        statusCounts={statusCounts}
-      />
+      <div className="mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hideBots}
+              onChange={(e) => setHideBots(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Hide bot PRs (github-actions, dependabot)</span>
+          </label>
+        </div>
+
+        <FilterBar
+          users={sortedUsers}
+          projects={sortedProjects}
+          onUserFilter={setSelectedUsers}
+          onProjectFilter={setSelectedProjects}
+          onStatusFilter={setSelectedStatuses}
+          selectedUsers={selectedUsers}
+          selectedProjects={selectedProjects}
+          selectedStatuses={selectedStatuses}
+          userCounts={userCounts}
+          projectCounts={projectCounts}
+          statusCounts={statusCounts}
+          onToggleAllUsers={toggleAllUsers}
+          onToggleAllProjects={toggleAllProjects}
+          onToggleAllStatuses={toggleAllStatuses}
+        />
+      </div>
 
       <div>
         <div className="flex justify-between items-center mb-4">

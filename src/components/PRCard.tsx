@@ -40,7 +40,7 @@ export const PRCard: React.FC<PRCardProps> = ({ pr }) => {
           className="w-5 h-5 rounded-full"
         />
         <span className="text-sm text-gray-500">
-          {pr.user?.login || 'Unknown'} • {pr.repository?.name || 'Unknown'}
+          Created by {pr.user?.login || 'Unknown'} • {pr.repository?.name || 'Unknown'}
         </span>
       </div>
 

@@ -12,6 +12,9 @@ interface FilterBarProps {
   userCounts: Record<string, number>
   projectCounts: Record<string, number>
   statusCounts: Record<string, number>
+  onToggleAllUsers: () => void
+  onToggleAllProjects: () => void
+  onToggleAllStatuses: () => void
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -25,7 +28,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   selectedStatuses,
   userCounts,
   projectCounts,
-  statusCounts
+  statusCounts,
+  onToggleAllUsers,
+  onToggleAllProjects,
+  onToggleAllStatuses
 }) => {
   const handleUserChange = (user: string) => {
     if (selectedUsers.includes(user)) {
@@ -60,9 +66,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   return (
     <div className="flex gap-4 mb-6 flex-wrap items-start">
       <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700">
-          Filter by User:
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Filter by User:
+          </label>
+          <button
+            onClick={onToggleAllUsers}
+            className="text-xs text-blue-600 hover:text-blue-800 underline"
+          >
+            {selectedUsers.length === users.length ? 'None' : 'All'}
+          </button>
+        </div>
         <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto border border-gray-300 rounded-md p-2 bg-white min-w-[200px]">
           {users.map(user => (
             <label key={user} className="flex items-center gap-2 cursor-pointer">
@@ -81,9 +95,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700">
-          Filter by Project:
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Filter by Project:
+          </label>
+          <button
+            onClick={onToggleAllProjects}
+            className="text-xs text-blue-600 hover:text-blue-800 underline"
+          >
+            {selectedProjects.length === projects.length ? 'None' : 'All'}
+          </button>
+        </div>
         <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto border border-gray-300 rounded-md p-2 bg-white min-w-[200px]">
           {projects.map(project => (
             <label key={project} className="flex items-center gap-2 cursor-pointer">
@@ -102,9 +124,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700">
-          Filter by Status:
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Filter by Status:
+          </label>
+          <button
+            onClick={onToggleAllStatuses}
+            className="text-xs text-blue-600 hover:text-blue-800 underline"
+          >
+            {selectedStatuses.length === 4 ? 'None' : 'All'}
+          </button>
+        </div>
         <div className="flex flex-col gap-1 border border-gray-300 rounded-md p-2 bg-white min-w-[200px]">
           {[
             { value: 'draft', label: 'Draft' },
